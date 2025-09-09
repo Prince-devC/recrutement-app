@@ -1,22 +1,63 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  Colors as UILibColors,
+  TouchableOpacity,
+} from 'react-native-ui-lib';
+import { StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, MapPin, Filter, Briefcase, Clock, DollarSign } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+
+// Color palette definition (consistent with profile.tsx)
+UILibColors.loadColors({
+  primary: '#6A0DAD',
+  secondary: '#9D2BFF',
+  text: '#212121',
+  placeholder: '#757575',
+  border: '#E0E0E0',
+  background: '#F5F5F5',
+  white: '#FFFFFF',
+  error: '#D32F2F',
+  dark: '#000000',
+  success: '#4CAF50',
+  warning: '#FF9800',
+  info: '#2196F3',
+});
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [selectedSalary, setSelectedSalary] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const jobTypes = ['CDI', 'CDD', 'Freelance', 'Stage', 'Alternance'];
-  const locations = ['Paris', 'Lyon', 'Marseille', 'Toulouse', 'Nice', 'Nantes', 'Remote'];
+  const locations = ['Paris', 'Lyon', 'Marseille', 'Toulouse', 'Nice', 'Nantes', 'Télétravail'];
   const salaryRanges = ['20K - 30K €', '30K - 40K €', '40K - 50K €', '50K - 60K €', '60K+ €'];
 
-  const renderFilterSection = (title: string, icon: any, items: string[], selectedItem: string, onSelect: (item: string) => void) => (
+  const handleSearch = async () => {
+    setLoading(true);
+    // Simulate search delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setLoading(false);
+    // Here you would navigate to results or update results
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedLocation('');
+    setSelectedType('');
+    setSelectedSalary('');
+  };
+
+  const renderFilterSection = (title: string, iconName: string, items: string[], selectedItem: string, onSelect: (item: string) => void) => (
     <View style={styles.filterSection}>
       <View style={styles.filterHeader}>
-        {icon}
+        <View style={styles.filterIconContainer}>
+          <Ionicons name={iconName as any} size={18} color={UILibColors.primary} />
+        </View>
         <Text style={styles.filterTitle}>{title}</Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterOptions}>
@@ -44,30 +85,38 @@ export default function SearchScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Recherche avancée</Text>
-        <Text style={styles.headerSubtitle}>Affinez vos critères de recherche</Text>
-      </View>
+    <View style={styles.container}>
+      {/* Gradient Header */}
+      <LinearGradient colors={[UILibColors.primary, UILibColors.secondary]} style={styles.headerBackground}>
+        <Text style={styles.headerTitle}>Recherche Avancée</Text>
+        <Text style={styles.headerSubtitle}>Trouvez l'emploi de vos rêves</Text>
+      </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Search Section */}
         <View style={styles.searchSection}>
           <Text style={styles.sectionTitle}>Que recherchez-vous ?</Text>
           <View style={styles.searchBar}>
-            <Search size={20} color="#6b7280" />
+            <Ionicons name="search-outline" size={20} color={UILibColors.placeholder} />
             <TextInput
               style={styles.searchInput}
               placeholder="Poste, compétences, entreprise..."
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={UILibColors.placeholder}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={20} color={UILibColors.placeholder} />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
+        {/* Filter Sections */}
         {renderFilterSection(
           'Localisation',
-          <MapPin size={18} color="#3b82f6" />,
+          'location-outline',
           locations,
           selectedLocation,
           setSelectedLocation
@@ -75,7 +124,7 @@ export default function SearchScreen() {
 
         {renderFilterSection(
           'Type de contrat',
-          <Briefcase size={18} color="#10b981" />,
+          'briefcase-outline',
           jobTypes,
           selectedType,
           setSelectedType
@@ -83,72 +132,100 @@ export default function SearchScreen() {
 
         {renderFilterSection(
           'Salaire',
-          <DollarSign size={18} color="#f59e0b" />,
+          'card-outline',
           salaryRanges,
           selectedSalary,
           setSelectedSalary
         )}
 
+        {/* Popular Searches */}
         <View style={styles.suggestionsSection}>
           <Text style={styles.sectionTitle}>Recherches populaires</Text>
           <View style={styles.suggestionsList}>
-            {['Développeur React', 'Designer UX/UI', 'Chef de projet', 'Data Scientist', 'DevOps'].map((suggestion) => (
+            {['Développeur React', 'Designer UX/UI', 'Chef de projet', 'Data Scientist', 'DevOps', 'Marketing Digital'].map((suggestion) => (
               <TouchableOpacity key={suggestion} style={styles.suggestionChip}>
+                <Ionicons name="trending-up-outline" size={14} color={UILibColors.primary} />
                 <Text style={styles.suggestionText}>{suggestion}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
+        {/* Recent Searches */}
         <View style={styles.recentSearches}>
           <Text style={styles.sectionTitle}>Recherches récentes</Text>
           <View style={styles.recentList}>
-            {['Développeur Mobile Paris', 'UX Designer Remote', 'Chef de projet Lyon'].map((recent, index) => (
+            {[
+              'Développeur Mobile Paris',
+              'UX Designer Télétravail',
+              'Chef de projet Lyon'
+            ].map((recent, index) => (
               <TouchableOpacity key={index} style={styles.recentItem}>
-                <Clock size={16} color="#6b7280" />
+                <View style={styles.recentIconContainer}>
+                  <Ionicons name="time-outline" size={16} color={UILibColors.placeholder} />
+                </View>
                 <Text style={styles.recentText}>{recent}</Text>
+                <Ionicons name="arrow-forward" size={16} color={UILibColors.placeholder} />
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        <TouchableOpacity style={styles.searchButton}>
-          <Search size={20} color="#ffffff" />
-          <Text style={styles.searchButtonText}>Lancer la recherche</Text>
+        {/* Action Buttons */}
+        <TouchableOpacity style={styles.searchButton} onPress={handleSearch} disabled={loading}>
+          <LinearGradient
+            colors={[UILibColors.primary, UILibColors.secondary]}
+            style={styles.gradientButton}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            {loading ? (
+              <ActivityIndicator color={UILibColors.white} size="small" />
+            ) : (
+              <>
+                <Ionicons name="search" size={20} color={UILibColors.white} />
+                <Text style={styles.searchButtonText}>Lancer la recherche</Text>
+              </>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.clearButton}>
+        <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
+          <Ionicons name="refresh-outline" size={16} color={UILibColors.placeholder} />
           <Text style={styles.clearButtonText}>Effacer tous les filtres</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: UILibColors.background,
   },
-  header: {
+  headerBackground: {
+    paddingTop: 50,
+    paddingBottom: 30,
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
-    backgroundColor: '#ffffff',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontWeight: 'bold',
+    color: UILibColors.white,
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: UILibColors.white,
+    opacity: 0.8,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
+    marginTop: -15,
   },
   searchSection: {
     marginTop: 20,
@@ -157,78 +234,101 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
+    color: UILibColors.text,
     marginBottom: 12,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: UILibColors.white,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    elevation: 5,
+    shadowColor: UILibColors.dark,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowRadius: 3.84,
   },
   searchInput: {
     flex: 1,
     marginLeft: 12,
     fontSize: 16,
-    color: '#1f2937',
+    color: UILibColors.text,
   },
   filterSection: {
-    marginBottom: 24,
+    backgroundColor: UILibColors.white,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    elevation: 5,
+    shadowColor: UILibColors.dark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
   },
   filterHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
+  },
+  filterIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F0F9FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   filterTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
-    marginLeft: 8,
+    color: UILibColors.text,
   },
   filterOptions: {
     flexDirection: 'row',
   },
   filterOption: {
-    backgroundColor: '#ffffff',
+    backgroundColor: UILibColors.background,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     marginRight: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: UILibColors.border,
   },
   selectedFilterOption: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: UILibColors.primary,
+    borderColor: UILibColors.primary,
   },
   filterOptionText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: UILibColors.placeholder,
     fontWeight: '500',
   },
   selectedFilterOptionText: {
-    color: '#ffffff',
+    color: UILibColors.white,
   },
   suggestionsSection: {
-    marginBottom: 24,
+    backgroundColor: UILibColors.white,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    elevation: 5,
+    shadowColor: UILibColors.dark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
   },
   suggestionsList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   suggestionChip: {
-    backgroundColor: '#f3f4f6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 16,
@@ -237,54 +337,73 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 14,
-    color: '#4b5563',
+    color: UILibColors.text,
     fontWeight: '500',
+    marginLeft: 6,
   },
   recentSearches: {
+    backgroundColor: UILibColors.white,
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 32,
+    elevation: 5,
+    shadowColor: UILibColors.dark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
   },
   recentList: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 4,
+    marginTop: 4,
   },
   recentItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: UILibColors.border,
+  },
+  recentIconContainer: {
+    marginRight: 12,
   },
   recentText: {
     fontSize: 14,
-    color: '#4b5563',
-    marginLeft: 8,
+    color: UILibColors.text,
     fontWeight: '500',
+    flex: 1,
   },
   searchButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+    elevation: 3,
+    shadowColor: UILibColors.dark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  gradientButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#3b82f6',
     paddingVertical: 16,
-    borderRadius: 12,
-    marginBottom: 12,
   },
   searchButtonText: {
-    color: '#ffffff',
+    color: UILibColors.white,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
   },
   clearButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 12,
     marginBottom: 20,
   },
   clearButtonText: {
-    color: '#6b7280',
+    color: UILibColors.placeholder,
     fontSize: 14,
     fontWeight: '500',
+    marginLeft: 6,
   },
 });

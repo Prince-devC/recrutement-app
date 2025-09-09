@@ -1,56 +1,210 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  Colors as UILibColors,
+  TouchableOpacity,
+} from 'react-native-ui-lib';
+import { StyleSheet, ScrollView, Image, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Mail, Phone, MapPin, Calendar, Briefcase, GraduationCap, Settings, Bell, FileText, CreditCard as Edit, Camera } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '@/app/utils/AuthContext';
+import { useRouter } from 'expo-router';
+
+// Color palette definition (consistent with login.tsx and register.tsx)
+UILibColors.loadColors({
+  primary: '#6A0DAD',
+  secondary: '#9D2BFF',
+  text: '#212121',
+  placeholder: '#757575',
+  border: '#E0E0E0',
+  background: '#F5F5F5',
+  white: '#FFFFFF',
+  error: '#D32F2F',
+  dark: '#000000',
+  success: '#4CAF50',
+});
 
 export default function ProfileScreen() {
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { setIsAuthenticated } = useAuth();
+  const router = useRouter();
+  
   const [profile, setProfile] = useState({
-    name: 'Marie Dubois',
-    email: 'marie.dubois@email.com',
-    phone: '+33 6 12 34 56 78',
-    location: 'Paris, France',
-    title: 'Développeuse Full-Stack',
-    experience: '5 ans d\'expérience',
-    bio: 'Passionnée par le développement web et mobile, je recherche de nouveaux défis dans une équipe dynamique.',
+    name: '',
+    email: '',
+    phone: '',
+    location: '',
+    title: '',
+    experience: '',
+    bio: '',
     avatar: 'https://images.pexels.com/photos/3184298/pexels-photo-3184298.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop',
   });
 
-  const menuItems = [
-    { icon: <FileText size={20} color="#3b82f6" />, title: 'Mon CV', subtitle: 'Gérer mon curriculum vitae' },
-    { icon: <Bell size={20} color="#3b82f6" />, title: 'Notifications', subtitle: 'Alertes et préférences' },
-    { icon: <Settings size={20} color="#3b82f6" />, title: 'Paramètres', subtitle: 'Confidentialité et sécurité' },
-  ];
-
-  const stats = [
+  const [stats] = useState([
     { label: 'Candidatures', value: '12' },
     { label: 'Vues profil', value: '48' },
     { label: 'Favoris', value: '6' },
+  ]);
+
+  const menuItems = [
+    { icon: 'document-text-outline', title: 'Mon CV', subtitle: 'Gérer mon curriculum vitae' },
+    { icon: 'notifications-outline', title: 'Notifications', subtitle: 'Alertes et préférences' },
+    { icon: 'settings-outline', title: 'Paramètres', subtitle: 'Confidentialité et sécurité' },
   ];
+
+  // Simulate loading profile data from database
+  useEffect(() => {
+    const loadProfileData = async () => {
+      try {
+        setLoading(true);
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Simulate loaded data from database
+        setProfile({
+          name: 'Marie Dubois',
+          email: 'marie.dubois@email.com',
+          phone: '+33 6 12 34 56 78',
+          location: 'Paris, France',
+          title: 'Développeuse Full-Stack',
+          experience: '5 ans d\'expérience',
+          bio: 'Passionnée par le développement web et mobile, je recherche de nouveaux défis dans une équipe dynamique.',
+          avatar: 'https://images.pexels.com/photos/3184298/pexels-photo-3184298.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop',
+        });
+      } catch (err: any) {
+        setError('Impossible de charger les données du profil');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfileData();
+  }, []);
+
+  const handleSaveProfile = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      
+      // Validation
+      if (!profile.name.trim()) {
+        setError('Le nom est requis');
+        return;
+      }
+      
+      if (!profile.email.trim()) {
+        setError('L\'email est requis');
+        return;
+      }
+
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Here you would call your database update function
+      // await updateUserProfile(profile);
+      
+      Alert.alert('Succès', 'Profil mis à jour avec succès!');
+      setIsEditing(false);
+    } catch (err: any) {
+      setError('Erreur lors de la sauvegarde du profil');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Déconnexion',
+      'Êtes-vous sûr de vouloir vous déconnecter ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Déconnexion',
+          style: 'destructive',
+          onPress: () => setIsAuthenticated(false)
+        }
+      ]
+    );
+  };
 
   const renderProfileSection = () => (
     <View style={styles.profileSection}>
       <View style={styles.avatarContainer}>
         <Image source={{ uri: profile.avatar }} style={styles.avatar} />
         <TouchableOpacity style={styles.cameraButton}>
-          <Camera size={16} color="#ffffff" />
+          <Ionicons name="camera" size={16} color={UILibColors.white} />
         </TouchableOpacity>
       </View>
       
       <View style={styles.profileInfo}>
-        <Text style={styles.profileName}>{profile.name}</Text>
-        <Text style={styles.profileTitle}>{profile.title}</Text>
-        <Text style={styles.profileExperience}>{profile.experience}</Text>
+        {isEditing ? (
+          <TextInput
+            style={styles.nameInput}
+            value={profile.name}
+            onChangeText={(text) => setProfile({...profile, name: text})}
+            placeholder="Nom complet"
+            placeholderTextColor={UILibColors.placeholder}
+          />
+        ) : (
+          <Text style={styles.profileName}>{profile.name}</Text>
+        )}
+        
+        {isEditing ? (
+          <TextInput
+            style={styles.titleInput}
+            value={profile.title}
+            onChangeText={(text) => setProfile({...profile, title: text})}
+            placeholder="Titre professionnel"
+            placeholderTextColor={UILibColors.placeholder}
+          />
+        ) : (
+          <Text style={styles.profileTitle}>{profile.title}</Text>
+        )}
+        
+        {isEditing ? (
+          <TextInput
+            style={styles.experienceInput}
+            value={profile.experience}
+            onChangeText={(text) => setProfile({...profile, experience: text})}
+            placeholder="Expérience"
+            placeholderTextColor={UILibColors.placeholder}
+          />
+        ) : (
+          <Text style={styles.profileExperience}>{profile.experience}</Text>
+        )}
       </View>
       
       <TouchableOpacity
         style={styles.editButton}
-        onPress={() => setIsEditing(!isEditing)}
+        onPress={isEditing ? handleSaveProfile : () => setIsEditing(true)}
+        disabled={saving}
       >
-        <Edit size={16} color="#3b82f6" />
-        <Text style={styles.editButtonText}>
-          {isEditing ? 'Sauvegarder' : 'Modifier'}
-        </Text>
+        <LinearGradient
+          colors={[UILibColors.primary, UILibColors.secondary]}
+          style={styles.gradientButton}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          {saving ? (
+            <ActivityIndicator color={UILibColors.white} size="small" />
+          ) : (
+            <>
+              <Ionicons
+                name={isEditing ? 'checkmark' : 'pencil'}
+                size={16}
+                color={UILibColors.white}
+              />
+              <Text style={styles.editButtonText}>
+                {isEditing ? 'Sauvegarder' : 'Modifier'}
+              </Text>
+            </>
+          )}
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
@@ -58,7 +212,7 @@ export default function ProfileScreen() {
   const renderStatsRow = () => (
     <View style={styles.statsRow}>
       {stats.map((stat, index) => (
-        <View key={index} style={styles.statItem}>
+        <View key={index} style={[styles.statItem, index < stats.length - 1 && styles.statBorder]}>
           <Text style={styles.statValue}>{stat.value}</Text>
           <Text style={styles.statLabel}>{stat.label}</Text>
         </View>
@@ -71,12 +225,14 @@ export default function ProfileScreen() {
       <Text style={styles.sectionTitle}>Informations de contact</Text>
       
       <View style={styles.contactItem}>
-        <Mail size={18} color="#6b7280" />
+        <Ionicons name="mail-outline" size={18} color={UILibColors.primary} />
         {isEditing ? (
           <TextInput
             style={styles.contactInput}
             value={profile.email}
             onChangeText={(text) => setProfile({...profile, email: text})}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
         ) : (
           <Text style={styles.contactText}>{profile.email}</Text>
@@ -84,12 +240,13 @@ export default function ProfileScreen() {
       </View>
       
       <View style={styles.contactItem}>
-        <Phone size={18} color="#6b7280" />
+        <Ionicons name="call-outline" size={18} color={UILibColors.primary} />
         {isEditing ? (
           <TextInput
             style={styles.contactInput}
             value={profile.phone}
             onChangeText={(text) => setProfile({...profile, phone: text})}
+            keyboardType="phone-pad"
           />
         ) : (
           <Text style={styles.contactText}>{profile.phone}</Text>
@@ -97,7 +254,7 @@ export default function ProfileScreen() {
       </View>
       
       <View style={styles.contactItem}>
-        <MapPin size={18} color="#6b7280" />
+        <Ionicons name="location-outline" size={18} color={UILibColors.primary} />
         {isEditing ? (
           <TextInput
             style={styles.contactInput}
@@ -121,6 +278,7 @@ export default function ProfileScreen() {
           onChangeText={(text) => setProfile({...profile, bio: text})}
           multiline
           numberOfLines={4}
+          textAlignVertical="top"
         />
       ) : (
         <Text style={styles.bioText}>{profile.bio}</Text>
@@ -133,79 +291,124 @@ export default function ProfileScreen() {
       {menuItems.map((item, index) => (
         <TouchableOpacity key={index} style={styles.menuItem}>
           <View style={styles.menuIconContainer}>
-            {item.icon}
+            <Ionicons name={item.icon as any} size={20} color={UILibColors.primary} />
           </View>
           <View style={styles.menuContent}>
             <Text style={styles.menuTitle}>{item.title}</Text>
             <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
           </View>
+          <Ionicons name="chevron-forward" size={20} color={UILibColors.placeholder} />
         </TouchableOpacity>
       ))}
     </View>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <LinearGradient colors={[UILibColors.primary, UILibColors.secondary]} style={styles.loadingBackground}>
+          <ActivityIndicator size="large" color={UILibColors.white} />
+          <Text style={styles.loadingText}>Chargement du profil...</Text>
+        </LinearGradient>
+      </View>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <View style={styles.container}>
+      {/* Gradient Header */}
+      <LinearGradient colors={[UILibColors.primary, UILibColors.secondary]} style={styles.headerBackground}>
         <Text style={styles.headerTitle}>Mon Profil</Text>
         <Text style={styles.headerSubtitle}>Gérez vos informations personnelles</Text>
-      </View>
+      </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+        
         {renderProfileSection()}
         {renderStatsRow()}
         {renderContactInfo()}
         {renderBioSection()}
         {renderMenuItems()}
         
-        <TouchableOpacity style={styles.logoutButton}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={20} color={UILibColors.white} />
           <Text style={styles.logoutButtonText}>Se déconnecter</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: UILibColors.background,
   },
-  header: {
+  loadingContainer: {
+    flex: 1,
+  },
+  loadingBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: UILibColors.white,
+    fontSize: 16,
+    marginTop: 10,
+  },
+  headerBackground: {
+    paddingTop: 50,
+    paddingBottom: 30,
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
-    backgroundColor: '#ffffff',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontWeight: 'bold',
+    color: UILibColors.white,
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: UILibColors.white,
+    opacity: 0.8,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
+    marginTop: -15,
+  },
+  errorContainer: {
+    backgroundColor: UILibColors.error,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    marginTop: 20,
+  },
+  errorText: {
+    color: UILibColors.white,
+    textAlign: 'center',
+    fontSize: 14,
   },
   profileSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: UILibColors.white,
     borderRadius: 16,
     padding: 24,
     marginTop: 20,
     marginBottom: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    elevation: 5,
+    shadowColor: UILibColors.dark,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
   },
   avatarContainer: {
     position: 'relative',
@@ -216,106 +419,140 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
-    borderColor: '#ffffff',
+    borderColor: UILibColors.white,
   },
   cameraButton: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#3b82f6',
+    backgroundColor: UILibColors.primary,
     borderRadius: 16,
     width: 32,
     height: 32,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#ffffff',
+    borderColor: UILibColors.white,
   },
   profileInfo: {
     alignItems: 'center',
     marginBottom: 16,
+    width: '100%',
   },
   profileName: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontWeight: 'bold',
+    color: UILibColors.text,
     marginBottom: 4,
+  },
+  nameInput: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: UILibColors.text,
+    textAlign: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: UILibColors.primary,
+    paddingVertical: 4,
+    marginBottom: 8,
+    width: '100%',
   },
   profileTitle: {
     fontSize: 16,
-    color: '#3b82f6',
+    color: UILibColors.primary,
     fontWeight: '600',
     marginBottom: 2,
   },
+  titleInput: {
+    fontSize: 16,
+    color: UILibColors.primary,
+    fontWeight: '600',
+    textAlign: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: UILibColors.primary,
+    paddingVertical: 4,
+    marginBottom: 8,
+    width: '100%',
+  },
   profileExperience: {
     fontSize: 14,
-    color: '#6b7280',
+    color: UILibColors.placeholder,
+  },
+  experienceInput: {
+    fontSize: 14,
+    color: UILibColors.placeholder,
+    textAlign: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: UILibColors.primary,
+    paddingVertical: 4,
+    width: '100%',
   },
   editButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: UILibColors.dark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  gradientButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#3b82f6',
   },
   editButtonText: {
-    color: '#3b82f6',
+    color: UILibColors.white,
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 6,
   },
   statsRow: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
+    backgroundColor: UILibColors.white,
     borderRadius: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    elevation: 5,
+    shadowColor: UILibColors.dark,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 20,
+  },
+  statBorder: {
     borderRightWidth: 1,
-    borderRightColor: '#f3f4f6',
+    borderRightColor: UILibColors.border,
   },
   statValue: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontWeight: 'bold',
+    color: UILibColors.text,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: UILibColors.placeholder,
     fontWeight: '500',
   },
   contactSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: UILibColors.white,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    elevation: 5,
+    shadowColor: UILibColors.dark,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
+    color: UILibColors.text,
     marginBottom: 16,
   },
   contactItem: {
@@ -323,64 +560,58 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: UILibColors.border,
   },
   contactText: {
     fontSize: 14,
-    color: '#4b5563',
+    color: UILibColors.text,
     marginLeft: 12,
     flex: 1,
   },
   contactInput: {
     fontSize: 14,
-    color: '#4b5563',
+    color: UILibColors.text,
     marginLeft: 12,
     flex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: '#3b82f6',
+    borderBottomColor: UILibColors.primary,
     paddingVertical: 4,
   },
   bioSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: UILibColors.white,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    elevation: 5,
+    shadowColor: UILibColors.dark,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
   },
   bioText: {
     fontSize: 14,
-    color: '#4b5563',
+    color: UILibColors.text,
     lineHeight: 20,
   },
   bioInput: {
     fontSize: 14,
-    color: '#4b5563',
+    color: UILibColors.text,
     lineHeight: 20,
     borderWidth: 1,
-    borderColor: '#3b82f6',
+    borderColor: UILibColors.primary,
     borderRadius: 8,
     padding: 12,
-    textAlignVertical: 'top',
+    minHeight: 80,
   },
   menuSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: UILibColors.white,
     borderRadius: 16,
     marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    elevation: 5,
+    shadowColor: UILibColors.dark,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
   },
   menuItem: {
     flexDirection: 'row',
@@ -388,13 +619,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: UILibColors.border,
   },
   menuIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f0f9ff',
+    backgroundColor: '#F0F9FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -405,23 +636,26 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: UILibColors.text,
     marginBottom: 2,
   },
   menuSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: UILibColors.placeholder,
   },
   logoutButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: UILibColors.error,
     borderRadius: 12,
     paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 32,
   },
   logoutButtonText: {
-    color: '#ffffff',
+    color: UILibColors.white,
     fontSize: 16,
     fontWeight: '600',
+    marginLeft: 8,
   },
 });

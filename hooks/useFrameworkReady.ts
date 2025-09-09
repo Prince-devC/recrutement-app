@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 declare global {
   interface Window {
@@ -7,7 +7,18 @@ declare global {
 }
 
 export function useFrameworkReady() {
+  const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
-    window.frameworkReady?.();
-  });
+    // Simulate some async initialization
+    const initialize = async () => {
+      // For now, we'll just set it to true immediately.
+      // In a real app, this might involve loading assets, checking auth, etc.
+      setIsReady(true);
+      window.frameworkReady?.();
+    };
+    initialize();
+  }, []);
+
+  return isReady;
 }
